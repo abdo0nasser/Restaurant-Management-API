@@ -1,56 +1,104 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { handleDbError } from '../../common/errors/db-error-handler';
+import { EntityNotFoundError } from '../../common/errors/domain-errors';
 import { Restaurant, RestaurantDocument } from './models/restaurant.model';
+
+type CreateRestaurantData = Pick<
+  Restaurant,
+  'arName' | 'enName' | 'cuisines'
+> & {
+  latitude: number;
+  longitude: number;
+};
 
 @Injectable()
 export class RestaurantRepository {
   constructor(
     @InjectModel(Restaurant.name)
-    private readonly model: Model<RestaurantDocument>,
+    private readonly restaurantModel: Model<RestaurantDocument>,
   ) {}
 
-  async create(
-    data: Pick<Restaurant, 'arName' | 'enName' | 'cuisines' | 'location'>,
-  ): Promise<RestaurantDocument> {
-    return await this.model.create(data);
+  async create(data: CreateRestaurantData): Promise<RestaurantDocument> {
+    try {
+      return await this.restaurantModel.create({
+        arName: data.arName,
+        enName: data.enName,
+        cuisines: data.cuisines,
+        location: {
+          type: 'Point',
+          coordinates: [data.longitude, data.latitude],
+        },
+      });
+    } catch (error) {
+      handleDbError(error, 'create restaurant');
+    }
   }
 
-  async findAll(cuisine?: string): Promise<RestaurantDocument[]> {
-    const filter = cuisine ? { cuisines: cuisine } : {};
-    return await this.model.find(filter).exec();
+  async findAll(
+    page: number,
+    limit: number,
+    cuisine?: string,
+  ): Promise<RestaurantDocument[]> {
+    try {
+      const skip = limit * (page - 1);
+      const filter = cuisine ? { cuisines: cuisine } : {};
+      return await this.restaurantModel
+        .find(filter)
+        .skip(skip)
+        .limit(limit)
+        .exec();
+    } catch (error) {
+      handleDbError(error, 'find restaurants');
+    }
   }
 
-  async findById(id: string): Promise<RestaurantDocument | null> {
-    return await this.model.findById(id).exec();
+  async findById(id: string): Promise<RestaurantDocument> {
+    try {
+      const restaurant = await this.restaurantModel.findById(id).exec();
+      if (!restaurant) throw new EntityNotFoundError('Restaurant', id);
+      return restaurant;
+    } catch (error) {
+      if (error instanceof EntityNotFoundError) throw error;
+      handleDbError(error, 'find restaurant by id');
+    }
   }
 
-  async findBySlug(slug: string): Promise<RestaurantDocument | null> {
-    return await this.model.findOne({ slug }).exec();
-  }
-
-  async findByIdOrSlug(idOrSlug: string): Promise<RestaurantDocument> {
-    const isObjectId = /^[a-f\d]{24}$/i.test(idOrSlug);
-    const filter = isObjectId ? { _id: idOrSlug } : { slug: idOrSlug };
-    const restaurant = await this.model.findOne(filter).exec();
-    if (!restaurant) throw new NotFoundException('Restaurant not found');
-    return restaurant;
+  async findBySlug(slug: string): Promise<RestaurantDocument> {
+    try {
+      const restaurant = await this.restaurantModel.findOne({ slug }).exec();
+      if (!restaurant) throw new EntityNotFoundError('Restaurant', slug);
+      return restaurant;
+    } catch (error) {
+      if (error instanceof EntityNotFoundError) throw error;
+      handleDbError(error, 'find restaurant by slug');
+    }
   }
 
   async findNearby(
     latitude: number,
     longitude: number,
+    page: number,
+    limit: number,
     maxDistance: number,
   ): Promise<RestaurantDocument[]> {
-    return await this.model
-      .find({
-        location: {
-          $near: {
-            $geometry: { type: 'Point', coordinates: [longitude, latitude] },
-            $maxDistance: maxDistance,
+    try {
+      const skip = (page - 1) * limit;
+      return await this.restaurantModel
+        .find({
+          location: {
+            $near: {
+              $geometry: { type: 'Point', coordinates: [longitude, latitude] },
+              $maxDistance: maxDistance,
+            },
           },
-        },
-      })
-      .exec();
+        })
+        .limit(limit)
+        .skip(skip)
+        .exec();
+    } catch (error) {
+      handleDbError(error, 'find nearby restaurants');
+    }
   }
 }
