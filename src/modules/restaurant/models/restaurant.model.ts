@@ -6,18 +6,18 @@ export type RestaurantDocument = HydratedDocument<Restaurant>;
 
 @Schema({ timestamps: true, versionKey: false })
 export class Restaurant {
-  @Prop({ required: true })
+  @Prop({ required: true, trim: true })
   arName!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, trim: true })
   enName!: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true, unique: true, trim: true })
   slug!: string;
 
   @Prop({
     required: true,
-    type: [String],
+    type: [{ type: String, trim: true }],
     validate: {
       validator: (v: string[]) => v.length >= 1 && v.length <= 3,
       message: 'Cuisines must have between 1 and 3 items',
@@ -44,7 +44,7 @@ export class Restaurant {
 
 export const RestaurantSchema = SchemaFactory.createForClass(Restaurant);
 
-RestaurantSchema.pre<RestaurantDocument>('save', function () {
+RestaurantSchema.pre<RestaurantDocument>('validate', function () {
   if (this.isModified('enName') || this.isNew) {
     this.slug = slugify(this.enName, { lower: true, strict: true });
   }

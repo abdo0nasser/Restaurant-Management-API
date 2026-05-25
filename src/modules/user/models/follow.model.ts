@@ -14,4 +14,7 @@ export class Follow {
 
 export const FollowSchema = SchemaFactory.createForClass(Follow);
 
+// first index to make sure that no user follows a restaurant twice(and an index on the user btw)
+// second for queries on restaurant side
 FollowSchema.index({ user: 1, restaurant: 1 }, { unique: true });
+FollowSchema.index({ restaurant: 1 });
