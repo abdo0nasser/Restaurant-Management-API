@@ -19,7 +19,7 @@ Create a `.env` file at the project root (or use env vars). Common variables:
 Example `.env`:
 
 ```
-MONGO_URI=mongodb://localhost:27017/restaurant
+MONGO_URL=mongodb://localhost:27017/restaurant
 JWT_SECRET=change_this_to_a_strong_secret
 PORT=3000
 ```
