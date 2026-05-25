@@ -40,12 +40,42 @@ The project exposes Swagger docs at `api/docs` when running. Open:
 
 http://localhost:3000/api/docs
 
-### Useful endpoints
+### Endpoints
 
-- `POST /auth/login` — get JWT token (see `auth` module)
-- `POST /restaurant` — create restaurant (requires JWT)
-- `GET /restaurant` — list restaurants
-- `GET /user/recommendations` — get recommended restaurants based on similar users (requires JWT)
+#### Auth (public)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/signup` | Create a new account |
+| POST | `/api/auth/login` | Sign in and get JWT token |
+
+#### Restaurants
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/restaurant` | — | List all restaurants (filter by `cuisine`, paginate with `page` & `limit`) |
+| GET | `/api/restaurant/id/:id` | — | Get restaurant by MongoDB ObjectId |
+| GET | `/api/restaurant/:slug` | — | Get restaurant by slug |
+| GET | `/api/restaurant/nearby` | — | Find nearby restaurants (query: `latitude`, `longitude`, `page`, `limit`) |
+| GET | `/api/restaurant/most-followed` | — | Most followed restaurants (paginated) |
+| POST | `/api/restaurant` | JWT | Create a new restaurant |
+
+#### Users (all require JWT)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/user` | List all users |
+| GET | `/api/user/:id` | Get user by ID |
+| GET | `/api/user/follows` | Get restaurants the current user follows |
+| GET | `/api/user/recommendations` | Get personalized restaurant recommendations |
+| POST | `/api/user/follow/:restaurantId` | Follow a restaurant |
+| DELETE | `/api/user/follow/:restaurantId` | Unfollow a restaurant |
+
+#### System
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check |
 
 
 ### Developer notes
